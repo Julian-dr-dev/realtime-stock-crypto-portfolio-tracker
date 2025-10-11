@@ -7,4 +7,4 @@ import requests
 class DataFetcher: 
 
     def __init__(self):
-        pass
+        self.crypto_api_url = "https://min-api.cryptocompare.com/data/price"
