@@ -28,11 +28,13 @@ class DataFetcher:
         except Exception as e:
             print("Error Fetching stock history for {ticker}: {e}")
             return {}
+        
+
     def get_crypto_price(self, symbol: str, currency="USD") -> float:
         try:
-            response: requests.get(
+            response = requests.get(
                 self.crypto_api_url,
-                params={"fysm": symbol.upper(), "tsyms": currency.upper()},
+                params={"fsym": symbol.upper(), "tsyms": currency.upper()},
             )
             response.raise_for_status()
             data = response.json()
