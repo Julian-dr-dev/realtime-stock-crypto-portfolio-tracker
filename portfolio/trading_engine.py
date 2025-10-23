@@ -19,7 +19,35 @@ class TradingEngine:
 
         if change <= -2:
             return "buy"
-        
+        elif change >= 3:
+            return "sell"
+        return None 
+    
 
-        
 
+
+    def execute_trade(self, symbol, action, amount=1000):
+        price = self.data_fetcher.get_current_price()
+
+        if not price:
+            printf(f"Price for {symbol} unavailable. Skipping trade.")
+            return
+        
+        if action == "buy" and self.balance >= amount:
+            quantity = amount / price
+            self.portfolio.add_asset(symbol, quantity, price)
+            self.balance -= amount
+            print(f"Bought {quantity:.4f} {symbol} at ${price:.2f} | New balance: ${self.balance:.2f}")
+        elif action == "sell":
+            quantity_owned = self.portfolio.get_quantity(symbol)
+            if quantity_owned > 0:
+                sell_value = quantity_owned * price
+                self.portfolio.remove_asset(symbol, quantity_owned)
+                self.balance += sell_value
+
+    def show_status(self):
+        total_value = self.portfolio.get_portfolio_value()
+        print(f"\nBalance: ${self.balance:.2f}")
+        print(f"Portfolio Value: ${total_value:.2f}")
+        print(f"Total Equity: ${(self.balance + total_value):.2f}\n")
+        

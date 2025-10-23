@@ -32,6 +32,15 @@ class PortfolioManager:
             value = qty * price
             print(f"{symbol}: {qty} units @ ${price:.2f} = ${value:.2f}")
             print(f"\nTotal Value: ${self.get_portfolio_value():.2f}\n")
+    
 
+    def get_portfolio(self):
+        """Return the full portfolio dictionary."""
+        return self.portfolio
+
+    
+    def get_quantity(self, symbol):
+        """Return how many units of a symbol are currently held."""
+        return self.portfolio.get(symbol, 0)
 
 
