@@ -21,7 +21,25 @@ def main():
 
     prices = simulate_price_data(symbol, num_points=15)
     print("Generated price data:", prices)
+
+    for i in range(2, len(prices)):
+        window = price[:i]
+        singal = engine.evaluate_signal(symbol, window) 
+
+        if signal:
+            print(f"Signal detected: {signal.upper()} at price ${window[-1]:.2f}")
+            engine.execute_trade(symbol, signal)
+        else: 
+            print(f"No action at price ${window[-1]:.2f}")
+
+        time.sleep(0.5)
+
+
+    engine.show_status()
+    print("\n--- Simulation Complete ---")
+
     
+
 
 
 
