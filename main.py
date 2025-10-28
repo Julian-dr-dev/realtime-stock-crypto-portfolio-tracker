@@ -1,4 +1,4 @@
-from portfolio.trading_engine import TradingEngine
+from trading.trading_engine import TradingEngine
 import time
 import random
 
@@ -38,7 +38,7 @@ def main():
     engine.show_status()
     print("\n--- Simulation Complete ---")
 
-    
+
 
 
 
