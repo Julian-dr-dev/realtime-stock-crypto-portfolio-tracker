@@ -1,74 +1,122 @@
-import pandas as pd
-import numpy as np
-from portfolio.data_fetcher import DataFetcher
-from portfolio.portfolio_manager import PortfolioManager
+import random
+import json
+import time
+from datetime import datetime
+
+from data_fetcher import DataFetcher
+from portfolio_manager import PortfolioManager
+
 
 class TradingEngine:
-    def __init__(self):
+    def __init__(self, portfolio_file="portfolio.json", trade_log="trade_history.json", mode="simulation"):
         self.data_fetcher = DataFetcher()
-        self.portfolio = PortfolioManager()
-        self.balance = 10000
+        self.portfolio = PortfolioManager(portfolio_file)
+        self.trade_log_file = trade_log
+        self.mode = mode  # 'simulation' or 'live'
 
-    def evaluate_signal(self, symbol, price_data):
-        """
-        Determines buy/sell signals using Moving Average Crossover and RSI.
-        """
-        if len(price_data) < 20:  # Need at least 20 data points
-            return None
+        # Risk parameters
+        self.max_risk_per_trade = 0.05    # 5% of portfolio value
+        self.trade_fee = 1.00             # flat fee per trade (simulation)
 
-        # Create a DataFrame for easier analysis
-        df = pd.DataFrame(price_data, columns=["price"])
+        # Load previous trade history if it exists
+        try:
+            with open(self.trade_log_file, "r") as file:
+                self.trade_history = json.load(file)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.trade_history = []
 
-        # Calculate short-term (5-day) and long-term (20-day) moving averages
-        df["SMA_short"] = df["price"].rolling(window=5).mean()
-        df["SMA_long"] = df["price"].rolling(window=20).mean()
 
-        # RSI (Relative Strength Index) Calculation
-        delta = df["price"].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        df["RSI"] = 100 - (100 / (1 + rs))
+    def get_trade_signal(self, symbol, price_data):
+        return random.choice(["BUY", "SELL", "HOLD"])
 
-        # Get the most recent indicators
-        short_ma = df["SMA_short"].iloc[-1]
-        long_ma = df["SMA_long"].iloc[-1]
-        rsi = df["RSI"].iloc[-1]
 
-        # --- Signal Logic ---
-        if short_ma > long_ma and rsi < 70:
-            return "buy"
-        elif short_ma < long_ma and rsi > 30:
-            return "sell"
-        else:
-            return None
+    def calculate_position_size(self, price):
+        portfolio_value = self.portfolio.get_total_value()
+        risk_amount = portfolio_value * self.max_risk_per_trade
+        shares = int(risk_amount // price)
+        return max(shares, 0)
 
-    def execute_trade(self, symbol, action, amount=1000):
-        price = self.data_fetcher.get_current_price(symbol)
 
-        if not price:
-            print(f"Price for {symbol} unavailable. Skipping trade.")
-            return
+    def execute_trade(self, symbol, signal, price):
+        if signal == "BUY":
+            quantity = self.calculate_position_size(price)
+            if quantity > 0:
+                self.portfolio.buy(symbol, quantity, price)
+                trade_info = self.record_trade(symbol, "BUY", quantity, price)
+                print(f"[BUY] {quantity} shares of {symbol} at ${price:.2f}")
+                return trade_info
 
-        if action == "buy" and self.balance >= amount:
-            quantity = amount / price
-            self.portfolio.add_asset(symbol, quantity)
-            self.balance -= amount
-            print(f"Bought {quantity:.4f} {symbol} at ${price:.2f} | New balance: ${self.balance:.2f}")
-        elif action == "sell":
-            quantity_owned = self.portfolio.get_quantity(symbol)
-            if quantity_owned > 0:
-                sell_value = quantity_owned * price
-                self.portfolio.remove_asset(symbol, quantity_owned)
-                self.balance += sell_value
-                print(f"Sold {quantity_owned:.4f} {symbol} at ${price:.2f} | New balance: ${self.balance:.2f}")
-            else:
-                print(f"No holdings found for {symbol}. Skipping sell.")
-        else:
-            print(f"Not enough balance to buy {symbol}.")
+        elif signal == "SELL":
+            quantity = self.portfolio.get_position(symbol)
+            if quantity > 0:
+                self.portfolio.sell(symbol, quantity, price)
+                trade_info = self.record_trade(symbol, "SELL", quantity, price)
+                print(f"[SELL] {quantity} shares of {symbol} at ${price:.2f}")
+                return trade_info
 
-    def show_status(self):
-        total_value = self.portfolio.get_portfolio_value()
-        print(f"\nBalance: ${self.balance:.2f}")
-        print(f"Portfolio Value: ${total_value:.2f}")
-        print(f"Total Equity: ${(self.balance + total_value):.2f}\n")
+        elif signal == "HOLD":
+            print(f"[HOLD] No action for {symbol}")
+
+        return None
+
+
+    def run(self, symbols, iterations=10, delay=5):
+        print(f"🚀 Starting Trading Engine in {self.mode.upper()} mode...\n")
+
+        for i in range(iterations):
+            print(f"Iteration {i + 1}/{iterations}")
+
+            for symbol in symbols:
+                price_data = self.data_fetcher.get_latest_price(symbol)
+                current_price = price_data.get("price", 0)
+                if not current_price:
+                    continue
+
+                signal = self.get_trade_signal(symbol, price_data)
+                trade_info = self.execute_trade(symbol, signal, current_price)
+
+                if trade_info:
+                    self.trade_history.append(trade_info)
+                    self.save_trade_history()
+
+            self.portfolio.save()
+            print(f"💰 Portfolio Value: ${self.portfolio.get_total_value():.2f}\n")
+
+            if self.mode == "simulation":
+                time.sleep(delay)
+
+        print("✅ Trading session complete!\n")
+
+
+    def record_trade(self, symbol, action, quantity, price):
+        trade_info = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "symbol": symbol,
+            "action": action,
+            "quantity": quantity,
+            "price": price,
+            "total_cost": round(quantity * price, 2),
+            "fee": self.trade_fee
+        }
+        return trade_info
+
+
+    def save_trade_history(self):
+        with open(self.trade_log_file, "w") as file:
+            json.dump(self.trade_history, file, indent=4)
+
+
+    def get_status_snapshot(self):
+        return {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "mode": self.mode,
+            "portfolio_value": self.portfolio.get_total_value(),
+            "positions": self.portfolio.get_positions(),
+            "cash_balance": self.portfolio.get_cash_balance(),
+            "recent_trades": self.trade_history[-5:]
+        }
+
+
+if __name__ == "__main__":
+    engine = TradingEngine(mode="simulation")
+    engine.run(["AAPL", "MSFT", "GOOG"], iterations=5, delay=2)
