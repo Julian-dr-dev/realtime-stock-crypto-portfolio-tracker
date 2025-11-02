@@ -1,6 +1,6 @@
 import time
-from portfolio.data_fetcher import DataFtercher
-from portfolio.portfolio_manager import PortfolioManager
+from backend.data_fetcher import DataFtercher
+from backend.portfolio_manager import PortfolioManager
 from portfolio.trading_engine import TradingEngine
 
 
@@ -35,7 +35,7 @@ class MarketSimulaotr:
             print("\n Simulation complete")
 
             self.engine.show_status()
-            
+
 
 
 

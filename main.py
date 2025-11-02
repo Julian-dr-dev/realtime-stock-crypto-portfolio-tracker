@@ -1,4 +1,4 @@
-from trading.trading_engine import TradingEngine
+from backend.trading_engine import TradingEngine
 import time
 import random
 
