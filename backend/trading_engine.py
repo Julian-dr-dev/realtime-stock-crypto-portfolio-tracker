@@ -31,7 +31,7 @@ class TradingEngine:
 
 
     def calculate_position_size(self, price):
-        portfolio_value = self.portfolio.get_total_value()
+        portfolio_value = self.portfolio.get_portfolio_value()
         risk_amount = portfolio_value * self.max_risk_per_trade
         shares = int(risk_amount // price)
         return max(shares, 0)
@@ -80,7 +80,7 @@ class TradingEngine:
                     self.save_trade_history()
 
             self.portfolio.save()
-            print(f"💰 Portfolio Value: ${self.portfolio.get_total_value():.2f}\n")
+            print(f"💰 Portfolio Value: ${self.portfolio.get_portfolio_value:.2f}\n")
 
             if self.mode == "simulation":
                 time.sleep(delay)
@@ -110,7 +110,7 @@ class TradingEngine:
         return {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "mode": self.mode,
-            "portfolio_value": self.portfolio.get_total_value(),
+            "portfolio_value": self.portfolio.get_portfolio_value(),
             "positions": self.portfolio.get_positions(),
             "cash_balance": self.portfolio.get_cash_balance(),
             "recent_trades": self.trade_history[-5:]
