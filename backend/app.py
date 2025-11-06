@@ -1,21 +1,35 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from portfolio_manager import PortfolioManager
 from trading_engine import TradingEngine
 
+# Initialize Flask
 app = Flask(__name__)
+CORS(app)  # Allow frontend to call backend
 
-#front end connection
-CORS(app)
+# Initialize portfolio + trading system
+portfolio_manager = PortfolioManager()
+trading_engine = TradingEngine(portfolio_manager)
 
-engine = TradingEngine(mode="live")
 
-@app.route("/api/status", methods=["GET"])
+@app.route("/")
+def home():
+    return jsonify({"message": "Backend is running!"})
 
-def get_status():
-    snapshot = engine.get_status_snapshot()
-    return jsonify(snapshot)
+
+@app.route("/portfolio", methods=["GET"])
+def get_portfolio():
+    # Get portfolio total value
+    total_value = portfolio_manager.get_portfolio_value()
+
+    # Get holdings dictionary (or change to match your attribute name)
+    holdings = portfolio_manager.assets if hasattr(portfolio_manager, "assets") else {}
+
+    return jsonify({
+        "total_value": total_value,
+        "holdings": holdings
+    })
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
