@@ -6,7 +6,7 @@ from trading_engine import TradingEngine
 # Initialize Flask
 app = Flask(__name__)
 CORS(app)  # Allow frontend to call backend
-
+#wrapping in cors framework
 # Initialize portfolio + trading system
 portfolio_manager = PortfolioManager()
 trading_engine = TradingEngine(portfolio_manager)
