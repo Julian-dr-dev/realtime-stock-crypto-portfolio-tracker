@@ -8,10 +8,10 @@ from portfolio_manager import PortfolioManager
 
 
 class TradingEngine:
-    def __init__(self, portfolio_file="portfolio.json", trade_log="trade_history.json", mode="simulation"):
+    def __init__(self, portfolio_manger):
         self.data_fetcher = DataFetcher()
-        self.portfolio = PortfolioManager(portfolio_file)
-        self.trade_log_file = trade_log
+        self.portfolio = portfolio_manger
+        self.trade_log_file = trade_log()
         self.mode = mode  # 'simulation' or 'live'
 
         # Risk parameters
