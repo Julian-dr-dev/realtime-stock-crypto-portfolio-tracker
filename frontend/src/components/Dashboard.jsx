@@ -2,62 +2,49 @@ import React, { useEffect, useState } from "react";
 import Plot from "react-plotly.js";
 
 const Dashboard = () => {
-  const [status, setStatus] = useState(null);
+  const [portfolioValue, setPortfolioValue] = useState(null);
+  const [holdings, setHoldings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:5000/api/status")
+    fetch("http://127.0.0.1:5000/api/portfolio")
       .then((res) => res.json())
-      .then((data) => setStatus(data))
-      .catch((err) => console.error("Error fetching backend:", err));
+      .then((data) => {
+        setPortfolioValue(data.total_value || 0);
+        setHoldings(data.holdings || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching portfolio:", err);
+        setLoading(false);
+      });
   }, []);
 
-  if (!status) return <p className="text-center mt-10">Loading portfolio...</p>;
-
-  const recentTrades = status.recent_trades || [];
-  const holdings = status.holdings || {};
-  const symbols = Object.keys(holdings);
-  const quantities = Object.values(holdings);
+  if (loading) return <h3>Loading portfolio...</h3>;
 
   return (
-    <div className="p-10 font-sans">
-      <h1 className="text-3xl font-bold mb-4">Trading Dashboard</h1>
+    <div style={{ padding: "2rem" }}>
+      <h1>📊 Portfolio Dashboard</h1>
+      <h2>
+        Total Portfolio Value: $
+        {portfolioValue !== null ? portfolioValue.toFixed(2) : "0.00"}
+      </h2>
 
-      <div className="mb-6">
-        <h2 className="text-xl">Portfolio Value: ${status.portfolio_value}</h2>
-        <p>Mode: {status.mode}</p>
-        <p>Last Updated: {status.timestamp}</p>
-      </div>
-
-      <Plot
-        data={[
-          {
-            type: "bar",
-            x: symbols,
-            y: quantities,
-            marker: { color: "rgb(34, 150, 243)" },
-          },
-        ]}
-        layout={{
-          title: "Current Holdings",
-          xaxis: { title: "Symbol" },
-          yaxis: { title: "Quantity" },
-          autosize: true,
-        }}
-        style={{ width: "100%", height: "400px" }}
-      />
-
-      <h2 className="text-2xl mt-10 mb-3">Recent Trades</h2>
-      <ul>
-        {recentTrades.length > 0 ? (
-          recentTrades.map((t, i) => (
-            <li key={i}>
-              {t.timestamp} — {t.action} {t.quantity} {t.symbol} @ ${t.price}
-            </li>
-          ))
-        ) : (
-          <li>No recent trades found.</li>
-        )}
-      </ul>
+      {holdings.length > 0 ? (
+        <Plot
+          data={[
+            {
+              x: holdings.map((h) => h.symbol),
+              y: holdings.map((h) => h.value),
+              type: "bar",
+            },
+          ]}
+          layout={{ title: "Holdings Breakdown" }}
+          style={{ width: "100%", height: "400px" }}
+        />
+      ) : (
+        <p>No holdings to display.</p>
+      )}
     </div>
   );
 };
