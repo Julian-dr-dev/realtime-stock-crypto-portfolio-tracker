@@ -1,29 +1,82 @@
-from flask import Flask, jsonify
+# backend/app.py
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from datetime import datetime
 
+from data_fetcher import DataFetcher
 from portfolio_manager import PortfolioManager
 from trading_engine import TradingEngine
-from data_fetcher import DataFetcher
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize core components
-portfolio = PortfolioManager()
-engine = TradingEngine(portfolio_manager=portfolio)
-fetcher = DataFetcher()
+# Core backend objects
+data_fetcher = DataFetcher()
+portfolio_manager = PortfolioManager()
+trading_engine = TradingEngine(portfolio_manager)
 
-@app.route("/api/status", methods=["GET"])
-def status():
-    snapshot = engine.get_status_snapshot()
-    return jsonify(snapshot)
 
-@app.route("/api/run", methods=["POST"])
-def run():
-    # You can modify the symbol list anytime you want
-    symbols = ["BTC", "ETH", "AAPL"]
-    engine.run(symbols)
-    return jsonify({"message": "Trading cycle complete"})
+@app.route("/")
+def home():
+    return jsonify({"message": "Backend is running!", "timestamp": datetime.now().isoformat()})
+
+
+@app.route("/api/portfolio", methods=["GET"])
+def get_portfolio():
+    try:
+        # Build holdings as a list of dicts for the frontend
+        holdings_raw = getattr(portfolio_manager, "assets", {})  # {symbol: qty}
+        holdings_list = [{"symbol": s, "quantity": q} for s, q in holdings_raw.items()]
+
+        total_value = portfolio_manager.get_portfolio_value(
+            {s: data_fetcher.get_current_price(s, "crypto" if s.upper() in ["BTC","ETH","LTC","XRP"] else "stock")
+             for s in holdings_raw.keys()}
+        )
+
+        return jsonify({"total_value": total_value, "holdings": holdings_list})
+    except Exception as e:
+        app.logger.exception("Error in /api/portfolio")
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------------- NEWWWWWWWWWWWWWWWWWW ---------------------- #
+@app.route("/api/prices", methods=["GET"])
+def get_prices():
+   
+    try:
+        symbols_param = request.args.get("symbols", "")
+        if not symbols_param:
+            return jsonify({"error": "query parameter 'symbols' required (e.g. symbols=BTC,AAPL)"}), 400
+        
+        asset_type_param = request.args.get("asset_type", "auto").lower()
+        symbols = [s.strip().upper() for s in symbols_param.split(",") if s.strip()]
+        prices = {}
+
+        for i, sym in enumerate(symbols):
+            if asset_type_param == "auto":
+                is_crypto = sym in {"BTC", "ETH", "LTC", "XRP", "DOGE"}
+                atype = "crypto" if is_crypto else "stock"
+            else: 
+                atype = asset_type_param
+
+
+            price = data_fetcher.get_current_price(sym, atype)
+            data_fetcher.wait_for_next_request(0.5)
+
+            prices[sym] = price
+            response = {
+            "timestamp": datetime.now().isoformat(),
+            "prices": prices
+        }
+            
+        return jsonify(response)
+    except Exception as e:
+        app.logger.exception("Error in /api/prices")
+        return jsonify({"error": str(e)}), 500
+
+            
+# ----------------------------------------------------------------- #
+
 
 if __name__ == "__main__":
     app.run(debug=True)
