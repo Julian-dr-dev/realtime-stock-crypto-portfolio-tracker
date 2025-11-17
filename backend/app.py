@@ -7,6 +7,8 @@ from data_fetcher import DataFetcher
 from portfolio_manager import PortfolioManager
 from trading_engine import TradingEngine
 
+
+
 app = Flask(__name__)
 CORS(app)
 
