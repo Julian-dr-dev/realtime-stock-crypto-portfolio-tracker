@@ -20,11 +20,25 @@ function App() {
     <div style={{ padding: 20 }}>
       <h1>Frontend → Backend Test</h1>
 
-      <button onClick={fetchPrices}>Test Backend Call</button>
+      <button
+        onClick={fetchPrices}
+        style={{
+          padding: "10px 20px",
+          background: "blue",
+          color: "white",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer"
+        }}
+      >
+        Test Backend Call
+      </button>
 
       {loading && <p>Loading...</p>}
 
-      {prices && <pre>{JSON.stringify(prices, null, 2)}</pre>}
+      {prices && (
+        <pre>{JSON.stringify(prices, null, 2)}</pre>
+      )}
     </div>
   );
 }
