@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 function App() {
-  const [prices, setPrices] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [prices, setPrices] = useState({});
+  const [loading, setLoading] = useState(true);
 
   const fetchPrices = async () => {
-    setLoading(true);
     try {
       const res = await axios.get("http://localhost:5000/api/prices");
       setPrices(res.data);
@@ -16,28 +15,51 @@ function App() {
     setLoading(false);
   };
 
-  return (
-    <div style={{ padding: 20 }}>
-      <h1>Frontend → Backend Test</h1>
+  // Auto-refresh every 5 seconds
+  useEffect(() => {
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-      <button
-        onClick={fetchPrices}
-        style={{
-          padding: "10px 20px",
-          background: "blue",
-          color: "white",
-          border: "none",
-          borderRadius: "6px",
-          cursor: "pointer"
-        }}
-      >
-        Test Backend Call
-      </button>
+  return (
+    <div style={{ padding: "20px", fontFamily: "Arial" }}>
+      <h1>Live Price Table</h1>
 
       {loading && <p>Loading...</p>}
 
-      {prices && (
-        <pre>{JSON.stringify(prices, null, 2)}</pre>
+      {!loading && (
+        <table
+          style={{
+            borderCollapse: "collapse",
+            width: "50%",
+            marginTop: "20px",
+          }}
+        >
+          <thead>
+            <tr>
+              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                Symbol
+              </th>
+              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                Price
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {Object.entries(prices).map(([symbol, price]) => (
+              <tr key={symbol}>
+                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                  {symbol}
+                </td>
+                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                  ${price.toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
