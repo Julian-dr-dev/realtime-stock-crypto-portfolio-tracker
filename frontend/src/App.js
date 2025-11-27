@@ -3,59 +3,51 @@ import axios from "axios";
 
 function App() {
   const [prices, setPrices] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchPrices = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/prices");
-      setPrices(res.data);
+      const res = await axios.get(
+        "http://localhost:5000/api/prices?symbols=BTC,ETH,AAPL,TSLA"
+      );
+      setPrices(res.data.prices || {});
     } catch (err) {
       console.error("Error fetching prices:", err);
     }
-    setLoading(false);
   };
 
-  // Auto-refresh every 5 seconds
+  // Run fetchPrices every 5 seconds
   useEffect(() => {
-    fetchPrices();
-    const interval = setInterval(fetchPrices, 5000);
-    return () => clearInterval(interval);
+    fetchPrices(); // run immediately when page loads
+    const interval = setInterval(fetchPrices, 5000); // repeat every 5s
+    return () => clearInterval(interval); // cleanup
   }, []);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Live Price Table</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Live Crypto + Stock Prices</h1>
 
-      {loading && <p>Loading...</p>}
+      {loading && Object.keys(prices).length === 0 && (
+        <p>Loading...</p>
+      )}
 
-      {!loading && (
-        <table
-          style={{
-            borderCollapse: "collapse",
-            width: "50%",
-            marginTop: "20px",
-          }}
-        >
+      {Object.keys(prices).length === 0 && !loading && (
+        <p>No data yet...</p>
+      )}
+
+      {Object.keys(prices).length > 0 && (
+        <table border="1" cellPadding="10">
           <thead>
             <tr>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
-                Symbol
-              </th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
-                Price
-              </th>
+              <th>Symbol</th>
+              <th>Price</th>
             </tr>
           </thead>
-
           <tbody>
-            {Object.entries(prices).map(([symbol, price]) => (
-              <tr key={symbol}>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                  {symbol}
-                </td>
-                <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                  ${price.toLocaleString()}
-                </td>
+            {Object.entries(prices).map(([sym, price]) => (
+              <tr key={sym}>
+                <td>{sym}</td>
+                <td>${price.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
