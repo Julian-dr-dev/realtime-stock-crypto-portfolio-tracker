@@ -3,35 +3,35 @@ import axios from "axios";
 
 function App() {
   const [prices, setPrices] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchPrices = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(
         "http://localhost:5000/api/prices?symbols=BTC,ETH,AAPL,TSLA"
       );
+
       setPrices(res.data.prices || {});
     } catch (err) {
       console.error("Error fetching prices:", err);
     }
+    setLoading(false);
   };
 
-  // Run fetchPrices every 5 seconds
   useEffect(() => {
-    fetchPrices(); // run immediately when page loads
-    const interval = setInterval(fetchPrices, 5000); // repeat every 5s
-    return () => clearInterval(interval); // cleanup
+    fetchPrices();                      // fetch immediately
+    const interval = setInterval(fetchPrices, 5000); // update every 5 seconds
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Live Crypto + Stock Prices</h1>
 
-      {loading && Object.keys(prices).length === 0 && (
-        <p>Loading...</p>
-      )}
+      {loading && <p>Loading...</p>}
 
-      {Object.keys(prices).length === 0 && !loading && (
+      {!loading && Object.keys(prices).length === 0 && (
         <p>No data yet...</p>
       )}
 
