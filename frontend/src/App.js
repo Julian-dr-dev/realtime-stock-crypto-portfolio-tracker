@@ -9,7 +9,8 @@ function App() {
     setLoading(true);
     try {
       const res = await axios.get(
-        "http://localhost:5000/api/prices?symbols=BTC,ETH,AAPL,TSLA"
+        "http://127.0.0.1:5000/api/prices?symbols=BTC,ETH,AAPL,TSLA"
+
       );
 
       setPrices(res.data.prices || {});
